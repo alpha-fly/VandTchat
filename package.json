@@ -1,7 +1,6 @@
 {
-  "name": "nomadvchat",
-  "version": "1.0.0",
-  "type": "module",
+  "name": "nomadvchat",  
+  "version": "1.0.0",  
   "description": "Node.Js - WebRTC and Websockets",
   "keywords": [],
   "author": "",
