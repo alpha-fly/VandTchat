@@ -152,8 +152,8 @@ function makeConnection () {
         iceServers: [{
             urls: [ "stun:ntk-turn-2.xirsys.com" ]
          }, {
-            username: "R0aixsnfLcXk0oLk3bdtuE6IbNjDAbtjbn_AoyrC9NoUbxr0B6Tpzj002MHcqsSYAAAAAGK86jlwbGFjZXRvYmU=",
-            credential: "357977da-f809-11ec-b981-0242ac120004",
+            username: process.env.XirsysUsername,
+            credential: process.env.XirsysCredential,
             urls: [
                 "turn:ntk-turn-2.xirsys.com:80?transport=udp",
                 "turn:ntk-turn-2.xirsys.com:3478?transport=udp",
