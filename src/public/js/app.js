@@ -149,20 +149,36 @@ socket.on("ice", ice => {
 function makeConnection () {
     myPeerConnection = new RTCPeerConnection({
 
-        iceServers: [{
-            urls: [ "stun:ntk-turn-2.xirsys.com" ]
-         }, {
-            username: "R0aixsnfLcXk0oLk3bdtuE6IbNjDAbtjbn_AoyrC9NoUbxr0B6Tpzj002MHcqsSYAAAAAGK86jlwbGFjZXRvYmU=",
-            credential: "357977da-f809-11ec-b981-0242ac120004",
-            urls: [
-                "turn:ntk-turn-2.xirsys.com:80?transport=udp",
-                "turn:ntk-turn-2.xirsys.com:3478?transport=udp",
-                "turn:ntk-turn-2.xirsys.com:80?transport=tcp",
-                "turn:ntk-turn-2.xirsys.com:3478?transport=tcp",
-                "turns:ntk-turn-2.xirsys.com:443?transport=tcp",
-                "turns:ntk-turn-2.xirsys.com:5349?transport=tcp"
-            ]
-         }]
+        iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { 
+                username: 'alphafly',
+                credential: '1324',
+                urls: [
+                    'turn:3.34.42.87:3478?transport=tcp',
+                    'turn:3.34.42.87:3478?transport=udp',                    
+                    'turn:3.34.42.87:80?transport=tcp',
+                    'turn:3.34.42.87:80?transport=udp',
+                    'turns:3.34.42.87:443?transport=tcp',
+                    'turns:3.34.42.87:5349?transport=tcp',
+                    ] 
+            }
+        ]
+
+        // iceServers: [{
+        //     urls: [ "stun:ntk-turn-2.xirsys.com" ]
+        //  }, {
+        //     username: "R0aixsnfLcXk0oLk3bdtuE6IbNjDAbtjbn_AoyrC9NoUbxr0B6Tpzj002MHcqsSYAAAAAGK86jlwbGFjZXRvYmU=",
+        //     credential: "357977da-f809-11ec-b981-0242ac120004",
+        //     urls: [
+        //         "turn:ntk-turn-2.xirsys.com:80?transport=udp",
+        //         "turn:ntk-turn-2.xirsys.com:3478?transport=udp",
+        //         "turn:ntk-turn-2.xirsys.com:80?transport=tcp",
+        //         "turn:ntk-turn-2.xirsys.com:3478?transport=tcp",
+        //         "turns:ntk-turn-2.xirsys.com:443?transport=tcp",
+        //         "turns:ntk-turn-2.xirsys.com:5349?transport=tcp"
+        //     ]
+        //  }]
 
         // iceServers: [
         //     {
