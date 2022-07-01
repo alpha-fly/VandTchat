@@ -1,5 +1,5 @@
+require("dotenv").config();
 const socket = io();
-
 const myFace = document.getElementById("myFace");
 const muteBtn = document.getElementById("mute");
 const cameraBtn = document.getElementById("camera");
@@ -145,15 +145,14 @@ socket.on("ice", ice => {
 })
 
 // WebRTC Code
-
 function makeConnection () {
     myPeerConnection = new RTCPeerConnection({
 
         iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
             { 
-                username: 'alphafly',
-                credential: '1324',
+                username: process.env.TURN_username,
+                credential: process.env.TURN_credential,
                 urls: [
                     'turn:3.34.42.87:3478?transport=tcp',
                     'turn:3.34.42.87:3478?transport=udp',                    
@@ -163,34 +162,7 @@ function makeConnection () {
                     'turns:3.34.42.87:5349?transport=tcp',
                     ] 
             }
-        ]
-
-        // iceServers: [{
-        //     urls: [ "stun:ntk-turn-2.xirsys.com" ]
-        //  }, {
-        //     username: "R0aixsnfLcXk0oLk3bdtuE6IbNjDAbtjbn_AoyrC9NoUbxr0B6Tpzj002MHcqsSYAAAAAGK86jlwbGFjZXRvYmU=",
-        //     credential: "357977da-f809-11ec-b981-0242ac120004",
-        //     urls: [
-        //         "turn:ntk-turn-2.xirsys.com:80?transport=udp",
-        //         "turn:ntk-turn-2.xirsys.com:3478?transport=udp",
-        //         "turn:ntk-turn-2.xirsys.com:80?transport=tcp",
-        //         "turn:ntk-turn-2.xirsys.com:3478?transport=tcp",
-        //         "turns:ntk-turn-2.xirsys.com:443?transport=tcp",
-        //         "turns:ntk-turn-2.xirsys.com:5349?transport=tcp"
-        //     ]
-        //  }]
-
-        // iceServers: [
-        //     {
-        //         urls: [
-        //             "stun:stun.l.google.com:19302",
-        //             "stun:stun1.l.google.com:19302",
-        //             "stun:stun2.l.google.com:19302",
-        //             "stun:stun3.l.google.com:19302",
-        //             "stun:stun4.l.google.com:19302",
-        //         ],
-        //     },
-        // ],
+        ]      
     });
     myPeerConnection.addEventListener("icecandidate", handleIce)
     myPeerConnection.addEventListener("addstream", handleAddStream)
