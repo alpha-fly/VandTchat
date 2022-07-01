@@ -3,8 +3,6 @@ import { Server } from "socket.io"
 import { instrument  } from "@socket.io/admin-ui";
 import express from "express";
 
-require("dotenv").config();
-
 const app = express();
 
 app.set ("view engine", "pug");

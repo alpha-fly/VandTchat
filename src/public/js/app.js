@@ -1,5 +1,5 @@
-require("dotenv").config();
 const socket = io();
+
 const myFace = document.getElementById("myFace");
 const muteBtn = document.getElementById("mute");
 const cameraBtn = document.getElementById("camera");
@@ -145,14 +145,15 @@ socket.on("ice", ice => {
 })
 
 // WebRTC Code
+
 function makeConnection () {
     myPeerConnection = new RTCPeerConnection({
 
         iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
             { 
-                username: process.env.TURN_username,
-                credential: process.env.TURN_credential,
+                username: 'alphafly',
+                credential: '1324',
                 urls: [
                     'turn:3.34.42.87:3478?transport=tcp',
                     'turn:3.34.42.87:3478?transport=udp',                    
@@ -162,7 +163,7 @@ function makeConnection () {
                     'turns:3.34.42.87:5349?transport=tcp',
                     ] 
             }
-        ]      
+        ]
     });
     myPeerConnection.addEventListener("icecandidate", handleIce)
     myPeerConnection.addEventListener("addstream", handleAddStream)
