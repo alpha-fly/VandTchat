@@ -8,19 +8,27 @@ html(lang="en")
         link(rel="stylesheet" href="https://unpkg.com/mvp.css")
     body 
         header
-            h1 renDev demo: 현재 하울링과 에코가 심하므로 이어폰 사용을 부탁드립니다. 개선할거에요...
+            h1 renDev demo: 하울링과 에코가 심하므로 이어폰 사용을 부탁드립니다. 개선할거에요...
         main
+            <!-- div#welcome : 방에 입장하기 전, 면접코드를 입력하는 부분입니다 --!>
             div#welcome
                 form
-                    input(placeholder="room name" required, type = "text")
-                    button Enter Room
-            div#call
+                    input(placeholder="interview code" required, type = "text")
+                    button Start Interview
+
+            <!-- div#call : 방에 입장했을 때 화면에 띄울 부분들입니다 --!>
+            div#call 
                 div#myStream
                     video#myFace(autoplay,playsinline, width="400", height="400")     
                     button#mute Mute
                     button#camera Turn Camera Off
                     select#cameras
-                video#peerFace(autoplay,playsinline, width="400", height="400")     
+                video#peerFace(autoplay,playsinline, width="400", height="400")   
+            div#chat
+                ul 
+                form#msg
+                    input(placeholder="message", required, type="text")
+                    button Send
        
         script(src = "/socket.io/socket.io.js")    
         script(src = "/public/js/app.js")

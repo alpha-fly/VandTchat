@@ -6,8 +6,10 @@ const cameraBtn = document.getElementById("camera");
 const camerasSelect = document.getElementById("cameras");
 
 const call  = document.getElementById("call")
+const chat  = document.getElementById("chat")
 
 call.hidden = true;
+chat.hidden = true;
 
 let myStream;
 let muted = false;
@@ -94,17 +96,22 @@ camerasSelect.addEventListener("input", handleCameraChange);
 
 
 // welcome Form (choose a room)
-
 const welcome = document.getElementById("welcome")
 const welcomeForm = welcome.querySelector("form");
 
 async function initCall() {
     welcome.hidden = true; 
     call.hidden = false;
+    chat.hidden = false;
+
+    const msgForm = chat.querySelector("#msg");
+    msgForm.addEventListener("submit", handleMessageSubmit)  
+
     await getMedia();
     makeConnection();
 };
 
+// (2) room name을 입력받고 join_room에 전달한다. 
 async function handleWelcomeSubmit(event) {
     event.preventDefault();
     const input = welcomeForm.querySelector("input");
@@ -114,10 +121,12 @@ async function handleWelcomeSubmit(event) {
     input.value=""
 }
 
+// 방 입장하기
 welcomeForm.addEventListener("submit", handleWelcomeSubmit)
 
-//socket code
+//socket code part 1 : 영상채팅용 socket 통신 (WebRTC peer-to-peer 연결을 위한 부분)
 
+// (4) 방에 입장되었다. 시그널링을 시작함, offer의 내용을 만들어 서버에 보낸다. 
 socket.on("welcome", async () => {
     const offer = await myPeerConnection.createOffer();    
     myPeerConnection.setLocalDescription(offer)
@@ -125,6 +134,7 @@ socket.on("welcome", async () => {
     socket.emit("offer", offer, roomName);
 });
 
+// (6) offer를 받았다. answer의 내용을 만들어 서버에 보낸다. 
 socket.on("offer", async (offer) => {
     console.log("received the offer")
     myPeerConnection.setRemoteDescription(offer);
@@ -134,6 +144,7 @@ socket.on("offer", async (offer) => {
     console.log("sent the answer")
 });
 
+// (8) answer까지 받았다. remote description 을 생성한다. 
 socket.on("answer", (answer) => {
     console.log("received the answer")
     myPeerConnection.setRemoteDescription(answer);
@@ -143,6 +154,37 @@ socket.on("ice", ice => {
     console.log("received candidate")
     myPeerConnection.addIceCandidate(ice);
 })
+
+//socket code part 2 : 텍스트 채팅 핸들링 + 방 나가기 핸들링
+
+function addMessage(message) {
+    const ul = chat.querySelector("ul")
+    const li = document.createElement("li")
+    li.innerText = message;
+    ul.appendChild(li);
+}
+
+async function handleMessageSubmit(event) {
+    event.preventDefault();
+    const input = chat.querySelector("#msg input");
+    const value = input.value
+
+    console.log (value, roomName);
+
+    socket.emit("new_message", input.value, roomName, () => {
+        addMessage(`You : ${value}`);    
+    });
+    input.value=""
+}
+
+socket.on("new_message", (msg) => {addMessage(msg)});
+
+// socket.on("bye", (left, newCount) => {
+//     const h3 = room.querySelector("h3");
+//     h3.innerText = `Room ${roomName} (${newCount})`;
+//     addMessage(`${left} left...`)
+// })
+
 
 // WebRTC Code
 
