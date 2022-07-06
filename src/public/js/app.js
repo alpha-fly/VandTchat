@@ -116,12 +116,13 @@ async function handleWelcomeSubmit(event) {
     event.preventDefault();
     const input = welcomeForm.querySelector("input");
     socket.emit("check_code", input.value );  
+    roomName = input.value
+    input.value=""
 }
 
 socket.on("right_code", async (roomName) => {
     await initCall();
-        socket.emit("join_room", roomName );        
-        input.value=""
+    socket.emit("join_room", roomName );                
 });
 
 socket.on("wrong_code", (errormessage) => {
