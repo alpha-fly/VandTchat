@@ -111,15 +111,22 @@ async function initCall() {
     makeConnection();
 };
 
-// (2) room name을 입력받고 join_room에 전달한다. 
+// (2) interview code(room name)을 입력받고 join_room에 전달한다. 
 async function handleWelcomeSubmit(event) {
     event.preventDefault();
     const input = welcomeForm.querySelector("input");
-    await initCall();
-    socket.emit("join_room", input.value );
-    roomName = input.value;
-    input.value=""
+    socket.emit("check_code", input.value );  
 }
+
+socket.on("right_code", async (roomName) => {
+    await initCall();
+        socket.emit("join_room", roomName );        
+        input.value=""
+});
+
+socket.on("wrong_code", (errormessage) => {
+    console.log(errormessage);
+});
 
 // 방 입장하기
 welcomeForm.addEventListener("submit", handleWelcomeSubmit)
@@ -168,9 +175,7 @@ async function handleMessageSubmit(event) {
     event.preventDefault();
     const input = chat.querySelector("#msg input");
     const value = input.value
-
-    console.log (value, roomName);
-
+   
     socket.emit("new_message", input.value, roomName, () => {
         addMessage(`You : ${value}`);    
     });
