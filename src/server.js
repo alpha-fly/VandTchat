@@ -37,7 +37,7 @@ wsServer.on("connection", socket => {
     // (3-1) 입력된 interview code가 옳은지 검증한다
     // (3-2) 전달받은 room name 으로 입장한다 (없는 경우 room 만들면서 입장)
     socket.on("check_code", (code) => {
-        const interviewCodes = ["123123", "345345"]
+        const interviewCodes = ["123123", "345345", "567567", "789789"]
         if (interviewCodes.includes(code)) {                  
             socket.emit("right_code", code)
         } else {
