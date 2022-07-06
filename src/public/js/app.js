@@ -126,7 +126,7 @@ socket.on("right_code", async (roomName) => {
 });
 
 socket.on("wrong_code", (errormessage) => {
-    console.log(errormessage);
+    alert(errormessage);
 });
 
 // 방 입장하기
