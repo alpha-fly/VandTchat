@@ -1,7 +1,7 @@
 {
   "name": "nomadvchat",
   "version": "1.0.0",
-  "description": "Node.Js - WebRTC and Websockets",  
+  "description": "Node.Js - WebRTC and Websockets",
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -20,6 +20,7 @@
     "@socket.io/admin-ui": "^0.4.0",
     "dotenv": "^16.0.1",
     "express": "^4.18.1",
+    "mysql2": "^2.3.3",
     "pug": "^3.0.2",
     "socket.io": "^4.5.1",
     "ws": "^8.8.0"

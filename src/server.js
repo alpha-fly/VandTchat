@@ -2,6 +2,8 @@ import http from "http";
 import { Server } from "socket.io"
 import { instrument  } from "@socket.io/admin-ui";
 import express from "express";
+import mysql from 'mysql2';
+require('dotenv').config();
 
 const app = express();
 
@@ -22,28 +24,45 @@ instrument(wsServer, {
     auth: false
 });
 
+// MySQL DB에 연결
+const db = mysql.createConnection({
+    host: process.env.DB_HOST,
+    user: "root",
+    password: process.env.DB_PASSWORD,
+    database: "rendevSQL",
+    multipleStatements : true
+});
+
 wsServer.on("connection", socket => {
 
     // (1) 소켓 접속되면 일단 nickname 을 Anonymous로 디폴트 설정해줌
     socket["nickname"] = "Anonymous"
 
-    // 모든 socket 이벤트에 대한 log 표시
-    socket.onAny((event) => {
-        console.log(wsServer.sockets.adapter);
-        console.log(`Socket Event : ${event}`)        
-    });
+    // 모든 socket 이벤트에 대한 log 표시 (필요시에만 주석을 풀어 사용할 것)
+    // socket.onAny((event) => {
+    //     console.log(wsServer.sockets.adapter);
+    //     console.log(`Socket Event : ${event}`)        
+    // });
 
-
-    // (3-1) 입력된 interview code가 옳은지 검증한다
+    // (3-1) 입력된 interview code가 옳은지 검증한다 (DB의 application 테이블에 존재하는 인터뷰코드인가?)
     // (3-2) 전달받은 room name 으로 입장한다 (없는 경우 room 만들면서 입장)
-    socket.on("check_code", (code) => {
-        const interviewCodes = ["123123", "345345", "567567", "789789"]
-        if (interviewCodes.includes(code)) {                  
-            socket.emit("right_code", code)
-        } else {
-            const errormessage = "인터뷰 코드가 바르지 않습니다."
-            socket.emit("wrong_code", errormessage);
-        }        
+    socket.on("check_code", (code) => {        
+        db.connect();
+        db.query("SELECT interviewCode from application", (error, results) => {
+            if (error) { console.log (error); }                     
+
+            const interviewCodes = results
+                .filter(code => code["interviewCode"] !== null)
+                .map((item) => item["interviewCode"]);            
+            //console.log (interviewCodes)
+
+            if (interviewCodes.includes(code)) {                  
+                socket.emit("right_code", code)
+            } else {
+                const errormessage = "인터뷰 코드가 바르지 않습니다."
+                socket.emit("wrong_code", errormessage);
+            }  
+        })                                          
     });
 
     socket.on("join_room", (roomName) => {
@@ -83,7 +102,7 @@ wsServer.on("connection", socket => {
     //     wsServer.sockets.emit("room_change", publicRooms());
     // })
 
-})
+});
   
 const handleListen = () => console.log(`Listening on http://localhost:3000`)
 httpServer.listen(3000, handleListen);
