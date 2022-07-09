@@ -3,6 +3,7 @@ const socket = io();
 const myFace = document.getElementById("myFace");
 const muteBtn = document.getElementById("mute");
 const cameraBtn = document.getElementById("camera");
+const finishBtn = document.getElementById("finish"); // 인터뷰 종료버튼
 const camerasSelect = document.getElementById("cameras");
 
 const call  = document.getElementById("call")
@@ -90,8 +91,14 @@ async function handleCameraChange() {
     }
 }
 
+async function handleFinishInterview() {  //인터뷰 종료 버튼 클릭시
+    finishBtn.hidden = true;
+    socket.emit("finish_interview", roomName);  
+}
+
 muteBtn.addEventListener("click", handleMuteClick);
 cameraBtn.addEventListener("click", handleCameraClick);
+finishBtn.addEventListener("click", handleFinishInterview) // 인터뷰 종료 버튼에 이벤트 배정
 camerasSelect.addEventListener("input", handleCameraChange);
 
 
@@ -125,7 +132,7 @@ socket.on("right_code", async (roomName) => {
     socket.emit("join_room", roomName );                
 });
 
-socket.on("wrong_code", (errormessage) => {
+socket.on("wrong_code", async (errormessage) => {
     alert(errormessage);
 });
 

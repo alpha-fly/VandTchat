@@ -1,114 +1,182 @@
 import http from "http";
-import { Server } from "socket.io"
-import { instrument  } from "@socket.io/admin-ui";
+import { Server } from "socket.io";
+import { instrument } from "@socket.io/admin-ui";
 import express from "express";
-import mysql from 'mysql2';
-require('dotenv').config();
+import mysql from "mysql2";
+require("dotenv").config();
 
 const app = express();
 
-app.set ("view engine", "pug");
-app.set ("views", __dirname + "/views");
-app.use ("/public", express.static(__dirname+"/public"));
-app.get ("/", (req,res) => res.render("home"));
-app.get ("/*", (req,res) => res.redirect("/"));
+app.set("view engine", "pug");
+app.set("views", __dirname + "/views");
+app.use("/public", express.static(__dirname + "/public"));
+app.get("/", (req, res) => res.render("home"));
+app.get("/*", (req, res) => res.redirect("/"));
 
 const httpServer = http.createServer(app);
 
-// 502 Bad gateway 에러에 대한 대응: Idle timeout 값을 크게 잡아준다. 
+// 502 Bad gateway 에러에 대한 대응: Idle timeout 값을 크게 잡아준다.
 // AWS ALB의 기본 Idel timeout 값은 60초. 아래와 같이 65, 66초로 잡아줌.
 httpServer.keepAliveTimeout = 65000;
 httpServer.headersTimeout = 66000;
 
 const wsServer = new Server(httpServer, {
-    cors: {
-        origin: ["https://admin.socket.io"],
-        credentials: true
-  }
+  cors: {
+    origin: ["https://admin.socket.io"],
+    credentials: true,
+  },
 });
 instrument(wsServer, {
-    auth: false
+  auth: false,
 });
 
 // MySQL DB에 연결
 const db = mysql.createConnection({
-    host: process.env.DB_HOST,
-    user: "root",
-    password: process.env.DB_PASSWORD,
-    database: "rendevSQL",
-    multipleStatements : true
+  host: process.env.DB_HOST,
+  user: "root",
+  password: process.env.DB_PASSWORD,
+  database: "rendevSQL",
+  multipleStatements: true,
 });
 
-wsServer.on("connection", socket => {
+wsServer.on("connection", (socket) => {
+  // (1) 소켓 접속되면 일단 nickname 을 Anonymous로 디폴트 설정해줌
+  socket["nickname"] = "Anonymous";
 
-    // (1) 소켓 접속되면 일단 nickname 을 Anonymous로 디폴트 설정해줌
-    socket["nickname"] = "Anonymous"
+  // 모든 socket 이벤트에 대한 log 표시 (필요시에만 주석을 풀어 사용할 것)
+  // socket.onAny((event) => {
+  //     console.log(wsServer.sockets.adapter);
+  //     console.log(`Socket Event : ${event}`)
+  // });
 
-    // 모든 socket 이벤트에 대한 log 표시 (필요시에만 주석을 풀어 사용할 것)
-    // socket.onAny((event) => {
-    //     console.log(wsServer.sockets.adapter);
-    //     console.log(`Socket Event : ${event}`)        
-    // });
+  // (3-1) 입력된 interview code가 옳은지 검증한다 (DB의 application 테이블에 존재하는 인터뷰코드인가?)
+  socket.on("check_code", (code) => {
+    db.connect();
+    db.query(
+      "SELECT interviewCode, schedule, status from application",
+      (error, results) => {
+        if (error) {
+          console.log(error);
+        }
 
-    // (3-1) 입력된 interview code가 옳은지 검증한다 (DB의 application 테이블에 존재하는 인터뷰코드인가?)
-    // (3-2) 전달받은 room name 으로 입장한다 (없는 경우 room 만들면서 입장)
-    socket.on("check_code", (code) => {        
-        db.connect();
-        db.query("SELECT interviewCode from application", (error, results) => {
-            if (error) { console.log (error); }                     
+        // 입력받은 면접코드가 DB의 application 테이블의 interviewCode 칼럼에 등록된 코드인지 확인한다.
+        const interview = results.find(
+          (application) => application["interviewCode"] === code
+        );
+        const currentTime = new Date();
+        console.log(interview);
 
-            const interviewCodes = results
-                .filter(code => code["interviewCode"] !== null)
-                .map((item) => item["interviewCode"]);            
-            //console.log (interviewCodes)
+        if (!interview) {
+          const errormessage = "인터뷰 코드가 바르지 않습니다.";
+          socket.emit("wrong_code", errormessage);
+          return;
+        }
 
-            if (interviewCodes.includes(code)) {                  
-                socket.emit("right_code", code)
-            } else {
-                const errormessage = "인터뷰 코드가 바르지 않습니다."
-                socket.emit("wrong_code", errormessage);
-            }  
-        })                                          
-    });
+        // 현재 시각이 인터뷰 예약시간을 기준으로 "15분전 ~ 3시간 후" 사이일 때만 입장이 가능하다.
+        if (
+          currentTime.getTime() <
+            interview["schedule"].getTime() - 1000 * 60 * 15 ||
+          currentTime.getTime() >
+            interview["schedule"].getTime() + 1000 * 60 * 60 * 3
+        ) {
+          const errormessage =
+            "인터뷰 예약시간 기준 15분 전 ~ 3시간 후 사이에만 입장 가능합니다.";
 
-    socket.on("join_room", (roomName) => {
-        socket.join(roomName);        
-        socket.to(roomName).emit("welcome")
-    });
+          socket.emit("wrong_code", errormessage);
+          return;
+        }
 
-    // 아래 offer, answer, ice : WebRTC peer-to-peer 연결을 위해 socket으로 시그널링
-    
-    // (5) offer 내용을 전달받고 같은 방에 offer를 보낸다. 
-    socket.on("offer", (offer, roomName) => {
-        socket.to(roomName).emit("offer", offer)
-    });
+        // 위 두 조건을 모두 통과했다면 영상통화방으로 입장한다.
+        socket.emit("right_code", code);
+      }
+    );
+  });
 
-    // (7) answer의 내용을 전달받아 같은 방에 answer를 보낸다. 
-    socket.on("answer", (answer, roomName) => {
-        socket.to(roomName).emit("answer", answer);
-    })
+  // (3-2) 전달받은 room name 으로 입장한다 (없는 경우 room 만들면서 입장)
+  socket.on("join_room", (roomName) => {
+    socket.join(roomName);
+    socket.to(roomName).emit("welcome");
+  });
 
-    socket.on("ice", (ice, roomName) => {
-        socket.to(roomName).emit("ice",ice);
-    })
+  // 아래 offer, answer, ice : WebRTC peer-to-peer 연결을 위해 socket으로 시그널링
 
-    // 이하 text chat을 병합하기 위해 추가하는 socket 통신 + 방 나가기 핸들링
-    socket.on("new_message", (msg, roomName, done) => {
-        socket.to(roomName).emit("new_message", `${socket.nickname}: ${msg}`);        
-        done();
-    });
+  // (5) offer 내용을 전달받고 같은 방에 offer를 보낸다.
+  socket.on("offer", (offer, roomName) => {
+    socket.to(roomName).emit("offer", offer);
+  });
 
-    socket.on("nickname", nickname => socket["nickname"] = nickname);    
+  // (7) answer의 내용을 전달받아 같은 방에 answer를 보낸다.
+  socket.on("answer", (answer, roomName) => {
+    socket.to(roomName).emit("answer", answer);
+  });
 
-    // socket.on("disconnecting", () => {
-    //     socket.rooms.forEach((room) => socket.to(room).emit("bye", socket.nickname));      
-    // });
+  socket.on("ice", (ice, roomName) => {
+    socket.to(roomName).emit("ice", ice);
+  });
 
-    // socket.on("disconnect", () => {
-    //     wsServer.sockets.emit("room_change", publicRooms());
-    // })
+  // 이하 text chat을 병합하기 위해 추가하는 socket 통신 + 방 나가기 핸들링
+  socket.on("new_message", (msg, roomName, done) => {
+    socket.to(roomName).emit("new_message", `${socket.nickname}: ${msg}`);
+    done();
+  });
 
+  socket.on("nickname", (nickname) => (socket["nickname"] = nickname));
+
+  // 인터뷰 종료 버튼을 눌렀을 때 DB에 상태변화 적용해주기
+  socket.on("finish_interview", (roomName) => {
+    db.connect();
+    db.query(
+      `SELECT interviewCode, status 
+            from application
+            WHERE interviewCode="${roomName}"`,
+      (error, results) => {
+        if (error) {
+          console.log(error);
+        }
+
+        console.log(results);
+
+        // status가 finish(1)이나 finish(2)가 아닐 경우, finish(1)로 바꿔준다.
+        if (
+          results[0]["status"] !== "finish(1)" &&
+          results[0]["status"] !== "finish(2)"
+        ) {
+          db.query(
+            `UPDATE application 
+                      SET status="finish(1)" 
+                      WHERE interviewCode="${roomName}"`,
+            (error, results) => {
+              if (error) {
+                console.log(error);
+              }
+            }
+          );
+
+          // status가 finish(1)이라면, finish(2)로 바꿔준다.
+        } else if (results[0]["status"] == "finish(1)") {
+          db.query(
+            `UPDATE application 
+                      SET status="finish(2)" 
+                      WHERE interviewCode="${roomName}"`,
+            (error, results) => {
+              if (error) {
+                console.log(error);
+              }
+            }
+          );
+        }
+      }
+    );
+  });
+
+  // socket.on("disconnecting", () => {
+  //     socket.rooms.forEach((room) => socket.to(room).emit("bye", socket.nickname));
+  // });
+
+  // socket.on("disconnect", () => {
+  //     wsServer.sockets.emit("room_change", publicRooms());
+  // })
 });
-  
-const handleListen = () => console.log(`Listening on http://localhost:3000`)
+
+const handleListen = () => console.log(`Listening on http://localhost:3000`);
 httpServer.listen(3000, handleListen);
