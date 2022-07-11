@@ -15,8 +15,9 @@ app.get("/*", (req, res) => res.redirect("/"));
 
 const httpServer = http.createServer(app);
 
-// 502 Bad gateway 에러에 대한 대응: Idle timeout 값을 크게 잡아준다. (소용 X)
-// AWS ALB의 기본 Idel timeout 값은 60초. 아래와 같이 65, 66초로 잡아줌.
+
+// 502 Bad gateway 에러에 대한 대응: Idle timeout 값을 크게 잡아준다.
+// AWS ALB의 기본 Idle timeout 값은 60초. 아래와 같이 65, 66초로 잡아줌.
 httpServer.keepAliveTimeout = 65000;
 httpServer.headersTimeout = 66000;
 
