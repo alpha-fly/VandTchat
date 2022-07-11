@@ -71,22 +71,29 @@ wsServer.on("connection", (socket) => {
           const interview = results.find(
             (application) => application["interviewCode"] === code
           );
-          const currentTime = new Date();
-          console.log(interview);
-
+          
           if (!interview) {
             const errormessage = "인터뷰 코드가 바르지 않습니다.";
             socket.emit("wrong_code", errormessage);
             pool.releaseConnection(conn);
             return;
-          }
+          }          
+          console.log(interview);
 
           // 현재 시각이 인터뷰 예약시간을 기준으로 "15분전 ~ 3시간 후" 사이일 때만 입장이 가능하다.
+
+          const currentTime = new Date();
+          const fifteenMinEarlier = new Date( (Date.parse(interview["schedule"])) - 1000 * 60 * 15 );
+          const threeHrslater = new Date( (Date.parse(interview["schedule"])) + 1000 * 60 * 60 * 3 );
+
+          console.log("현재시각 :", currentTime)
+          console.log("인터뷰시간:", interview["schedule"])
+          console.log("15분 전  :", fifteenMinEarlier)
+          console.log("3시간 후 :", threeHrslater)        
+
           if (
-            currentTime.getTime() <
-              interview["schedule"].getTime() - 1000 * 60 * 15 ||
-            currentTime.getTime() >
-              interview["schedule"].getTime() + 1000 * 60 * 60 * 3
+            currentTime.getTime() < fifteenMinEarlier.getTime() ||
+            currentTime.getTime() > threeHrslater.getTime()
           ) {
             const errormessage =
               "인터뷰 예약시간 기준 15분 전 ~ 3시간 후 사이에만 입장 가능합니다.";
