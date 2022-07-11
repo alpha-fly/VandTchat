@@ -85,7 +85,7 @@ wsServer.on("connection", (socket) => {
           // 현재 시각 currentTime에 강제로 9시간을 더해서 DB상의 예약시간과 비교할 수 있게 맞춰줬음... 바람직하진 않음.
           
           const currentTime = new Date();
-          currentTime.setHours(currentTime.getHours() + 9); // 서버에선 이거 주석 풀고, 로컬에선 이거 주석처리할 것.
+          //currentTime.setHours(currentTime.getHours() + 9); // 서버에선 이거 주석 풀고, 로컬에선 이거 주석처리할 것.
 
           const fifteenMinEarlier = new Date( (Date.parse(interview["schedule"])) - 1000 * 60 * 15 );
           const threeHrslater = new Date( (Date.parse(interview["schedule"])) + 1000 * 60 * 60 * 3 );
@@ -100,7 +100,7 @@ wsServer.on("connection", (socket) => {
             currentTime > threeHrslater
           ) {
             const errormessage =
-              "인터뷰 예약시간 기준 15분 전 ~ 3시간 후 사이에만 입장 가능합니다.";
+              `인터뷰 예약시간 기준 "15분 전 ~ 3시간 후" 사이에만 입장 가능합니다.`;
 
             socket.emit("wrong_code", errormessage);
             pool.releaseConnection(conn);
