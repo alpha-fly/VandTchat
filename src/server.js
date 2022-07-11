@@ -15,8 +15,7 @@ app.get("/*", (req, res) => res.redirect("/"));
 
 const httpServer = http.createServer(app);
 
-
-// 502 Bad gateway 에러에 대한 대응: Idle timeout 값을 크게 잡아준다.
+// 502 Bad gateway 에러에 대한 대응: Idle timeout 값을 크게 잡아준다. (이것 만으로는 해결 안됐음)
 // AWS ALB의 기본 Idle timeout 값은 60초. 아래와 같이 65, 66초로 잡아줌.
 httpServer.keepAliveTimeout = 65000;
 httpServer.headersTimeout = 66000;
@@ -31,8 +30,7 @@ instrument(wsServer, {
   auth: false,
 });
 
-// MySQL DB에 연결 ----------------------------------------------------------------------
-
+// MySQL DB에 연결 (Pool)
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: "root",
@@ -42,8 +40,6 @@ const pool = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0
 });
-
-// ----------------------------------------------------------------------------
 
 wsServer.on("connection", (socket) => {
   // (1) 소켓 접속되면 일단 nickname 을 Anonymous로 디폴트 설정해줌
@@ -55,7 +51,7 @@ wsServer.on("connection", (socket) => {
   //     console.log(`Socket Event : ${event}`)
   // });
 
-  // (3-1) 입력된 interview code가 옳은지 검증한다 (DB의 application 테이블에 존재하는 인터뷰코드인가?)
+  // (3-1) 입력된 interview code가 옳은지 검증한다 (DB의 application 테이블에 등록된 코드인가?)
   socket.on("check_code", (code) => {
    
     pool.getConnection(function(err, conn){
@@ -80,13 +76,8 @@ wsServer.on("connection", (socket) => {
           }          
           console.log(interview);
 
-          // 현재 시각이 인터뷰 예약시간을 기준으로 "15분전 ~ 3시간 후" 사이일 때만 입장이 가능하다.
-
-          // 현재 시각 currentTime에 강제로 9시간을 더해서 DB상의 예약시간과 비교할 수 있게 맞춰줬음... 바람직하진 않음.
-          
-          const currentTime = new Date();
-          //currentTime.setHours(currentTime.getHours() + 9); // 서버에선 이거 주석 풀고, 로컬에선 이거 주석처리할 것.
-
+          // 현재 시각이 인터뷰 예약시간을 기준으로 "15분전 ~ 3시간 후" 사이일 때만 인터뷰 입장이 가능하다.        
+          const currentTime = new Date();          
           const fifteenMinEarlier = new Date( (Date.parse(interview["schedule"])) - 1000 * 60 * 15 );
           const threeHrslater = new Date( (Date.parse(interview["schedule"])) + 1000 * 60 * 60 * 3 );
 
@@ -136,7 +127,7 @@ wsServer.on("connection", (socket) => {
     socket.to(roomName).emit("ice", ice);
   });
 
-  // 이하 text chat을 병합하기 위해 추가하는 socket 통신 + 방 나가기 핸들링
+  // 이하 text chat을 위한 socket 통신
   socket.on("new_message", (msg, roomName, done) => {
     socket.to(roomName).emit("new_message", `${socket.nickname}: ${msg}`);
     done();
@@ -144,8 +135,7 @@ wsServer.on("connection", (socket) => {
 
   socket.on("nickname", (nickname) => (socket["nickname"] = nickname));
 
-  // 인터뷰 종료 버튼을 눌렀을 때 DB에 상태변화 적용해주기------------------------------
-
+  // 인터뷰 종료 버튼을 눌렀을 때 DB에 상태변화 적용해주기
   socket.on("finish_interview", (roomName) => {
     pool.getConnection(function(err, conn){
       pool.query(
@@ -193,8 +183,7 @@ wsServer.on("connection", (socket) => {
       )
       pool.releaseConnection(conn);
     });
-  });
-  //------------------------------------------------------------------------------------------------
+  });  
 
   // socket.on("disconnecting", () => {
   //     socket.rooms.forEach((room) => socket.to(room).emit("bye", socket.nickname));

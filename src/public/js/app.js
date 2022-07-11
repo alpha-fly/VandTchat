@@ -18,6 +18,7 @@ let cameraOff = false;
 let roomName;
 let myPeerConnection;
 
+// 사용자의 카메라 장치(mediaDevices) 불러오기
 async function getCameras() {
     try {
         const devices = await navigator.mediaDevices.enumerateDevices();        
@@ -37,6 +38,7 @@ async function getCameras() {
     }
 }
 
+// 사용자의 비디오 입력(media) 받아서 myStream 생성하기
 async function getMedia(deviceId) {
     const initialConstraints = {
         audio : true,
@@ -60,24 +62,26 @@ async function getMedia(deviceId) {
     }
 }
 
+// Mute 버튼 작동
 function handleMuteClick () {    
     myStream.getAudioTracks().forEach((track) => (track.enabled = !track.enabled));
     if (!muted) {
-        muteBtn.innerText = "Unmute"        
+        muteBtn.innerText = "내 마이크 끄기"        
         muted = true;
     } else {
-        muteBtn.innerText = "Mute"        
+        muteBtn.innerText = "내 마이크 켜기"        
         muted = false;
     }
 }
 
+// 카메라 on/off 작동
 function handleCameraClick () {    
     myStream.getVideoTracks().forEach((track) => (track.enabled = !track.enabled));
     if (cameraOff) {
-        cameraBtn.innerText = "Turn Camera Off"        
+        cameraBtn.innerText = "내 카메라 끄기"        
         cameraOff = false
     } else {
-        cameraBtn.innerText = "Turn Camera On"        
+        cameraBtn.innerText = "내 카메라 켜기"        
         cameraOff = true
     }
 }
@@ -91,7 +95,8 @@ async function handleCameraChange() {
     }
 }
 
-async function handleFinishInterview() {  //인터뷰 종료 버튼 클릭시
+// 인터뷰 종료 버튼 클릭시 : Video, Audio 끄고 종료 버튼 감추고 alert 띄워준다.
+async function handleFinishInterview() {  
     finishBtn.hidden = true;
     myStream.getAudioTracks().forEach((track) => (track.enabled = false));
     myStream.getVideoTracks().forEach((track) => (track.enabled = false));
@@ -173,7 +178,7 @@ socket.on("ice", ice => {
     myPeerConnection.addIceCandidate(ice);
 })
 
-//socket code part 2 : 텍스트 채팅 핸들링 + 방 나가기 핸들링
+//socket code part 2 : 텍스트 채팅 핸들링
 function addMessage(message) {
     const ul = chat.querySelector("ul")
     const li = document.createElement("li")
