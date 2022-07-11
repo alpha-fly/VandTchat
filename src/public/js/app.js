@@ -93,6 +93,9 @@ async function handleCameraChange() {
 
 async function handleFinishInterview() {  //인터뷰 종료 버튼 클릭시
     finishBtn.hidden = true;
+    myStream.getAudioTracks().forEach((track) => (track.enabled = false));
+    myStream.getVideoTracks().forEach((track) => (track.enabled = false));
+    alert("인터뷰 완료를 확인했습니다. 좋은 결과 기다릴게요 :)")
     socket.emit("finish_interview", roomName);  
 }
 
@@ -171,7 +174,6 @@ socket.on("ice", ice => {
 })
 
 //socket code part 2 : 텍스트 채팅 핸들링 + 방 나가기 핸들링
-
 function addMessage(message) {
     const ul = chat.querySelector("ul")
     const li = document.createElement("li")
@@ -200,7 +202,6 @@ socket.on("new_message", (msg) => {addMessage(msg)});
 
 
 // WebRTC Code
-
 function makeConnection () {
     myPeerConnection = new RTCPeerConnection({
 
