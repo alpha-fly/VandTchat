@@ -33,13 +33,15 @@ instrument(wsServer, {
 
 // MySQL DB에 연결 ----------------------------------------------------------------------
 
-// const db = mysql.createConnection({
-//   host: process.env.DB_HOST,
-//   user: "root",
-//   password: process.env.DB_PASSWORD,
-//   database: "rendevSQL",
-//   multipleStatements: true,  
-// });
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: "root",
+  password: process.env.DB_PASSWORD,
+  database: "rendevSQL",  
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
 
 // ----------------------------------------------------------------------------
 
@@ -55,52 +57,50 @@ wsServer.on("connection", (socket) => {
 
   // (3-1) 입력된 interview code가 옳은지 검증한다 (DB의 application 테이블에 존재하는 인터뷰코드인가?)
   socket.on("check_code", (code) => {
+   
+    pool.getConnection(function(err, conn){
+      conn.query(
+        "SELECT interviewCode, schedule, status from application",
+        (error, results) => {
+          if (error) {
+            console.log(error);
+            pool.releaseConnection(conn);
+          }
 
+          // 입력받은 면접코드가 DB의 application 테이블의 interviewCode 칼럼에 등록된 코드인지 확인한다.
+          const interview = results.find(
+            (application) => application["interviewCode"] === code
+          );
+          const currentTime = new Date();
+          console.log(interview);
 
-  // ----------------------------------------------------------------------------
+          if (!interview) {
+            const errormessage = "인터뷰 코드가 바르지 않습니다.";
+            socket.emit("wrong_code", errormessage);
+            pool.releaseConnection(conn);
+            return;
+          }
 
-    // db.connect();
-    // db.query(
-    //   "SELECT interviewCode, schedule, status from application",
-    //   (error, results) => {
-    //     if (error) {
-    //       console.log(error);
-    //     }
+          // 현재 시각이 인터뷰 예약시간을 기준으로 "15분전 ~ 3시간 후" 사이일 때만 입장이 가능하다.
+          if (
+            currentTime.getTime() <
+              interview["schedule"].getTime() - 1000 * 60 * 15 ||
+            currentTime.getTime() >
+              interview["schedule"].getTime() + 1000 * 60 * 60 * 3
+          ) {
+            const errormessage =
+              "인터뷰 예약시간 기준 15분 전 ~ 3시간 후 사이에만 입장 가능합니다.";
 
-    //     // 입력받은 면접코드가 DB의 application 테이블의 interviewCode 칼럼에 등록된 코드인지 확인한다.
-    //     const interview = results.find(
-    //       (application) => application["interviewCode"] === code
-    //     );
-    //     const currentTime = new Date();
-    //     console.log(interview);
+            socket.emit("wrong_code", errormessage);
+            pool.releaseConnection(conn);
+            return;
+          }
 
-    //     if (!interview) {
-    //       const errormessage = "인터뷰 코드가 바르지 않습니다.";
-    //       socket.emit("wrong_code", errormessage);
-    //       return;
-    //     }
-
-    //     // 현재 시각이 인터뷰 예약시간을 기준으로 "15분전 ~ 3시간 후" 사이일 때만 입장이 가능하다.
-    //     if (
-    //       currentTime.getTime() <
-    //         interview["schedule"].getTime() - 1000 * 60 * 15 ||
-    //       currentTime.getTime() >
-    //         interview["schedule"].getTime() + 1000 * 60 * 60 * 3
-    //     ) {
-    //       const errormessage =
-    //         "인터뷰 예약시간 기준 15분 전 ~ 3시간 후 사이에만 입장 가능합니다.";
-
-    //       socket.emit("wrong_code", errormessage);
-    //       return;
-    //     }
-
-
-// ----------------------------------------------------------------------------
-
-        // 위 두 조건을 모두 통과했다면 영상통화방으로 입장한다.
-        socket.emit("right_code", code);
-      // }   //여기도 주석 풀 것
-    // );    //여기도 주석 풀 것
+          // 위 두 조건을 모두 통과했다면 영상통화방으로 입장한다.
+          socket.emit("right_code", code);
+          pool.releaseConnection(conn);
+      })  
+    });   
   });
 
   // (3-2) 전달받은 room name 으로 입장한다 (없는 경우 room 만들면서 입장)
@@ -135,52 +135,54 @@ wsServer.on("connection", (socket) => {
 
   // 인터뷰 종료 버튼을 눌렀을 때 DB에 상태변화 적용해주기------------------------------
 
-  // socket.on("finish_interview", (roomName) => {
-  //   db.connect();
-  //   db.query(
-  //     `SELECT interviewCode, status 
-  //           from application
-  //           WHERE interviewCode="${roomName}"`,
-  //     (error, results) => {
-  //       if (error) {
-  //         console.log(error);
-  //       }
+  socket.on("finish_interview", (roomName) => {
+    pool.getConnection(function(err, conn){
+      pool.query(
+        `SELECT interviewCode, status 
+              from application
+              WHERE interviewCode="${roomName}"`,
+        (error, results) => {
+          if (error) {
+            console.log(error);
+            pool.releaseConnection(conn);
+          }
+          console.log(results);
 
-  //       console.log(results);
+          // status가 finish(1)이나 finish(2)가 아닐 경우, finish(1)로 바꿔준다.
+          if (
+            results[0]["status"] !== "finish(1)" &&
+            results[0]["status"] !== "finish(2)"
+          ) {
+            pool.query(
+              `UPDATE application 
+                        SET status="finish(1)" 
+                        WHERE interviewCode="${roomName}"`,
+              (error, results) => {
+                if (error) {
+                  console.log(error);
+                  pool.releaseConnection(conn);
+                }
+              }
+            );
 
-  //       // status가 finish(1)이나 finish(2)가 아닐 경우, finish(1)로 바꿔준다.
-  //       if (
-  //         results[0]["status"] !== "finish(1)" &&
-  //         results[0]["status"] !== "finish(2)"
-  //       ) {
-  //         db.query(
-  //           `UPDATE application 
-  //                     SET status="finish(1)" 
-  //                     WHERE interviewCode="${roomName}"`,
-  //           (error, results) => {
-  //             if (error) {
-  //               console.log(error);
-  //             }
-  //           }
-  //         );
-
-  //         // status가 finish(1)이라면, finish(2)로 바꿔준다.
-  //       } else if (results[0]["status"] == "finish(1)") {
-  //         db.query(
-  //           `UPDATE application 
-  //                     SET status="finish(2)" 
-  //                     WHERE interviewCode="${roomName}"`,
-  //           (error, results) => {
-  //             if (error) {
-  //               console.log(error);
-  //             }
-  //           }
-  //         );
-  //       }
-  //     }
-  //   );
-  // });
-
+          // status가 finish(1)이라면, finish(2)로 바꿔준다.
+          } else if (results[0]["status"] == "finish(1)") {
+            pool.query(
+              `UPDATE application 
+                        SET status="finish(2)" 
+                        WHERE interviewCode="${roomName}"`,
+              (error, results) => {
+                if (error) {
+                  console.log(error);
+                  pool.releaseConnection(conn);
+                }
+              });
+          }
+        }
+      )
+      pool.releaseConnection(conn);
+    });
+  });
   //------------------------------------------------------------------------------------------------
 
   // socket.on("disconnecting", () => {
