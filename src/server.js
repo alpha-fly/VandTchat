@@ -92,8 +92,8 @@ wsServer.on("connection", (socket) => {
           console.log("3시간 후 :", threeHrslater)        
 
           if (
-            currentTime.getTime() < fifteenMinEarlier.getTime() ||
-            currentTime.getTime() > threeHrslater.getTime()
+            currentTime < fifteenMinEarlier ||
+            currentTime > threeHrslater
           ) {
             const errormessage =
               "인터뷰 예약시간 기준 15분 전 ~ 3시간 후 사이에만 입장 가능합니다.";
