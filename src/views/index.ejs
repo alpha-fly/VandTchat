@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>renDev</title>
+    <link rel="stylesheet" href="public/js/test.css">
+</head>
+
+<body>
+    <div id="welcome">
+        <form>
+            <header>
+                <div class="GuideTextWrap">
+                    <span id="GuideText">renDev demo: 이어폰/헤드셋 사용을 부탁드립니다</span>
+                    <span id="GuideText">면접코드는 지원창에서 확인하실 수 있습니다</span>
+                </div>
+            </header>
+            <div class="InputWrap">
+                <input id="CodeInput" maxlength="1" required class="InputCode" autofocus />
+                <hr class="InputBar" />
+                <input maxlength="1" required class="InputCode" />
+                <hr class="InputBar" />
+                <input maxlength="1" required class="InputCode" />
+                <hr class="InputWhiteBar" />
+                <input maxlength="1" required class="InputCode" />
+                <hr class="InputBar" />
+                <input maxlength="1" required class="InputCode" />
+                <hr class="InputBar" />
+                <input maxlength="1" required class="InputCode" />
+            </div>
+            <div>
+                <div class="ButtonWrap">
+                    <button class="EnterButton">인터뷰 입장</button>
+                </div>
+        </form>
+    </div>
+
+    <div id="call">
+        <div class="ChatWrap">
+            <div class="FaceWrap">
+                <video id="peerFace" autoplay playsinline></video>
+                <video id="myFace" autoplay muted playsinline></video>
+                <div class="CameraButtonWrap">
+                    <button id="mute">음소거</button>
+                    <button id="camera">캠끄기</button>
+                    <select id="cameras"></select>
+                </div>
+            </div>
+            
+
+            <div id="chat">
+                <form id="msg">
+                    <div class="ChatTop"><span class="NickText">우주방랑자</span><button id="finish">인터뷰 완료</button></div>
+                    <div class="ChatText"><ul></ul></div>
+                    <div class="ChatInput"><input class="InputText" required type="text"><button class="SendMSGbtn">Send</button></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/public/js/app.js"></script>
+</body>
+</html>
