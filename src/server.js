@@ -3,14 +3,16 @@ import { Server } from "socket.io";
 import { instrument } from "@socket.io/admin-ui";
 import express from "express";
 import mysql from "mysql2";  
+import ejs from "ejs";
+import path from "path";
 require("dotenv").config();
 
 const app = express();
 
-app.set("view engine", "pug");
 app.set("views", __dirname + "/views");
+app.set("view engine", "ejs");
 app.use("/public", express.static(__dirname + "/public"));
-app.get("/", (req, res) => res.render("home"));
+app.get("/", (req, res) => res.render("index"));
 app.get("/*", (req, res) => res.redirect("/"));
 
 const httpServer = http.createServer(app);
@@ -54,55 +56,55 @@ wsServer.on("connection", (socket) => {
   // (3-1) 입력된 interview code가 옳은지 검증한다 (DB의 application 테이블에 등록된 코드인가?)
   socket.on("check_code", (code) => {
    
-    pool.getConnection(function(err, conn){
-      conn.query(
-        "SELECT interviewCode, schedule, status from application",
-        (error, results) => {
-          if (error) {
-            console.log(error);
-            pool.releaseConnection(conn);
-          }
+    // pool.getConnection(function(err, conn){
+    //   conn.query(
+    //     "SELECT interviewCode, schedule, status from application",
+    //     (error, results) => {
+    //       if (error) {
+    //         console.log(error);
+    //         pool.releaseConnection(conn);
+    //       }
 
-          // 입력받은 면접코드가 DB의 application 테이블의 interviewCode 칼럼에 등록된 코드인지 확인한다.
-          const interview = results.find(
-            (application) => application["interviewCode"] === code
-          );
+    //       // 입력받은 면접코드가 DB의 application 테이블의 interviewCode 칼럼에 등록된 코드인지 확인한다.
+    //       const interview = results.find(
+    //         (application) => application["interviewCode"] === code
+    //       );
           
-          if (!interview) {
-            const errormessage = "인터뷰 코드가 바르지 않습니다.";
-            socket.emit("wrong_code", errormessage);
-            pool.releaseConnection(conn);
-            return;
-          }          
-          console.log(interview);
+    //       if (!interview) {
+    //         const errormessage = "인터뷰 코드가 바르지 않습니다.";
+    //         socket.emit("wrong_code", errormessage);
+    //         pool.releaseConnection(conn);
+    //         return;
+    //       }          
+    //       console.log(interview);
 
-          // 현재 시각이 인터뷰 예약시간을 기준으로 "15분전 ~ 3시간 후" 사이일 때만 인터뷰 입장이 가능하다.        
-          const currentTime = new Date();          
-          const fifteenMinEarlier = new Date( (Date.parse(interview["schedule"])) - 1000 * 60 * 15 );
-          const threeHrslater = new Date( (Date.parse(interview["schedule"])) + 1000 * 60 * 60 * 3 );
+    //       // 현재 시각이 인터뷰 예약시간을 기준으로 "15분전 ~ 3시간 후" 사이일 때만 인터뷰 입장이 가능하다.        
+    //       const currentTime = new Date();          
+    //       const fifteenMinEarlier = new Date( (Date.parse(interview["schedule"])) - 1000 * 60 * 15 );
+    //       const threeHrslater = new Date( (Date.parse(interview["schedule"])) + 1000 * 60 * 60 * 3 );
 
-          console.log("현재시각 :", currentTime)
-          console.log("인터뷰시간:", interview["schedule"])
-          console.log("15분 전  :", fifteenMinEarlier)
-          console.log("3시간 후 :", threeHrslater)        
+    //       console.log("현재시각 :", currentTime)
+    //       console.log("인터뷰시간:", interview["schedule"])
+    //       console.log("15분 전  :", fifteenMinEarlier)
+    //       console.log("3시간 후 :", threeHrslater)        
 
-          if (
-            currentTime < fifteenMinEarlier ||
-            currentTime > threeHrslater
-          ) {
-            const errormessage =
-              `인터뷰 예약시간 기준 "15분 전 ~ 3시간 후" 사이에만 입장 가능합니다.`;
+    //       if (
+    //         currentTime < fifteenMinEarlier ||
+    //         currentTime > threeHrslater
+    //       ) {
+    //         const errormessage =
+    //           `인터뷰 예약시간 기준 "15분 전 ~ 3시간 후" 사이에만 입장 가능합니다.`;
 
-            socket.emit("wrong_code", errormessage);
-            pool.releaseConnection(conn);
-            return;
-          }
+    //         socket.emit("wrong_code", errormessage);
+    //         pool.releaseConnection(conn);
+    //         return;
+    //       }
 
           // 위 두 조건을 모두 통과했다면 영상통화방으로 입장한다.
           socket.emit("right_code", code);
-          pool.releaseConnection(conn);
-      })  
-    });   
+          // pool.releaseConnection(conn);
+    //   })  
+    // });   
   });
 
   // (3-2) 전달받은 room name 으로 입장한다 (없는 경우 room 만들면서 입장)
