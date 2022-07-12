@@ -66,13 +66,10 @@ async function getMedia(deviceId) {
 function handleMuteClick () {    
     myStream.getAudioTracks().forEach((track) => (track.enabled = !track.enabled));
     if (!muted) {
-        // document.getElementById("img").src = "../image/mute.svg";
-        // 이미지 에셋 번달 받은 후 이미지 수정 예정
-        muteBtn.innerText = "mute"        
+        muteBtn.innerText = "내 마이크 끄기"        
         muted = true;
     } else {
-        
-        muteBtn.innerText = "unmute"        
+        muteBtn.innerText = "내 마이크 켜기"        
         muted = false;
     }
 }
@@ -81,10 +78,10 @@ function handleMuteClick () {
 function handleCameraClick () {    
     myStream.getVideoTracks().forEach((track) => (track.enabled = !track.enabled));
     if (cameraOff) {
-        cameraBtn.innerText = "disable"        
+        cameraBtn.innerText = "내 카메라 끄기"        
         cameraOff = false
     } else {
-        cameraBtn.innerText = "enable"        
+        cameraBtn.innerText = "내 카메라 켜기"        
         cameraOff = true
     }
 }
@@ -119,10 +116,6 @@ const welcomeForm = welcome.querySelector("form");
 
 async function initCall() {
     welcome.hidden = true; 
-
-    //form 태그 안의 내용물들을 숨기기 위해 추가한 코드 입니다.
-    welcomeForm.hidden = true; 
-
     call.hidden = false;
     chat.hidden = false;
 
